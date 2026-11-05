@@ -1,0 +1,273 @@
+.feed-layout {
+  display: flex;
+  justify-content: center;
+  gap: 64px;
+  padding: 24px 16px 0;
+}
+
+.feed-column {
+  width: 100%;
+  min-width: 0;
+  max-width: 470px;
+}
+
+.post-card {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+
+.post-author {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.post-author a {
+  font-weight: 600;
+}
+
+.post-time {
+  color: var(--ink-soft);
+}
+
+.post-options-button {
+  width: 32px;
+  height: 32px;
+  margin-right: -6px;
+}
+
+.post-image {
+  position: relative;
+  display: grid;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: var(--bg-input);
+  background-position: center;
+  background-size: cover;
+  outline: 1px solid var(--line-soft);
+  user-select: none;
+}
+
+.like-burst {
+  color: #fff;
+  filter: drop-shadow(0 2px 8px rgb(0 0 0 / 35%));
+  opacity: 0;
+  animation: like-burst 900ms ease-out;
+  pointer-events: none;
+}
+
+@keyframes like-burst {
+  0% { opacity: 0; transform: scale(0.4); }
+  20% { opacity: 1; transform: scale(1.15); }
+  35% { transform: scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+.post-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0 -8px;
+}
+
+.like-button.is-liked,
+.like-button.is-liked:hover {
+  color: var(--red);
+}
+
+.post-likes {
+  margin: 2px 0 6px;
+  font-weight: 600;
+}
+
+.post-caption {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.post-caption a {
+  font-weight: 600;
+}
+
+.post-caption-more {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+}
+
+.feed-end {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 24px 0 48px;
+  text-align: center;
+}
+
+.feed-end-icon {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+
+.feed-end h2 {
+  margin: 8px 0 0;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.feed-end p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.right-rail {
+  position: sticky;
+  top: 24px;
+  display: none;
+  width: 319px;
+  height: fit-content;
+  flex: 0 0 auto;
+  padding: 12px 0 0 16px;
+}
+
+.rail-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.rail-account {
+  margin-bottom: 12px;
+}
+
+.rail-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.rail-copy a {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-copy small {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-heading {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.rail-heading a {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.text-link-muted,
+.text-link-muted:hover {
+  color: var(--ink-soft);
+}
+
+.rail-footer {
+  margin: 24px 0 0;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+@media (min-width: 1160px) {
+  .right-rail {
+    display: block;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-top-bar-home {
+    justify-content: space-between;
+    padding: 0 4px 0 16px;
+  }
+
+  .mobile-top-bar-home .brand-wordmark {
+    font-size: 28px;
+  }
+
+  .feed-heart {
+    position: relative;
+  }
+
+  .feed-heart-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+  }
+
+  .feed-layout {
+    padding: 0;
+  }
+
+  .feed-column {
+    max-width: 100%;
+  }
+
+  /* Phones run the image edge to edge; only the text keeps a gutter. */
+  .post-card {
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+    border-bottom: 0;
+  }
+
+  .post-header {
+    padding: 8px 12px;
+  }
+
+  .post-image {
+    border-radius: 0;
+    outline: 0;
+  }
+
+  .post-options-button {
+    margin-right: 0;
+  }
+
+  .post-actions {
+    margin: 2px 12px 0 4px;
+  }
+
+  .post-likes,
+  .post-caption {
+    padding: 0 12px;
+  }
+}

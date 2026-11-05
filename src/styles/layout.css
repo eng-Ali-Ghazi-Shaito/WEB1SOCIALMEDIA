@@ -1,0 +1,264 @@
+.sidebar {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--rail-wide);
+  padding: 8px 12px 20px;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  height: 73px;
+  margin-bottom: 19px;
+  padding: 25px 12px 16px;
+}
+
+.sidebar-logo .brand-glyph {
+  display: none;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 4px;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 48px;
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-size: 16px;
+  line-height: 20px;
+  text-align: left;
+  transition: background-color 120ms ease;
+}
+
+.nav-link:hover {
+  background: var(--bg-hover);
+}
+
+.nav-link-active {
+  font-weight: 700;
+}
+
+.nav-icon {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  transition: transform 120ms ease;
+}
+
+.nav-link:hover .nav-icon {
+  transform: scale(1.05);
+}
+
+.nav-link-active .nav-avatar .avatar {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.nav-badge {
+  position: absolute;
+  top: -7px;
+  right: -8px;
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0 4px;
+  border: 2px solid var(--bg);
+  border-radius: 10px;
+  background: var(--red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.main-column {
+  min-width: 0;
+  min-height: 100dvh;
+  margin-left: var(--rail-wide);
+}
+
+.more-popover {
+  position: fixed;
+  inset: auto;
+  width: 266px;
+  margin: 0;
+  padding: 8px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  color: var(--ink);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+
+.more-popover button {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+}
+
+.more-popover button:hover {
+  background: var(--bg-elevated-hover);
+}
+
+.more-popover-sidebar {
+  bottom: 76px;
+  left: 12px;
+}
+
+.more-popover-top-bar {
+  top: 44px;
+  right: 8px;
+  width: 240px;
+}
+
+.mobile-tabs,
+.mobile-top-bar {
+  display: none;
+}
+
+/* Icon rail: below 1264px, and on pages that need the width (panels, inbox). */
+.social-shell:has(.side-panel, .inbox) .main-column {
+  margin-left: var(--rail-narrow);
+}
+
+.social-shell:has(.side-panel, .inbox) .sidebar {
+  width: var(--rail-narrow);
+}
+
+.social-shell:has(.side-panel, .inbox) .sidebar .nav-label,
+.social-shell:has(.side-panel, .inbox) .sidebar .brand-wordmark {
+  display: none;
+}
+
+.social-shell:has(.side-panel, .inbox) .sidebar-logo .brand-glyph {
+  display: grid;
+}
+
+@media (max-width: 1263px) {
+  .main-column {
+    margin-left: var(--rail-narrow);
+  }
+
+  .sidebar {
+    width: var(--rail-narrow);
+  }
+
+  .sidebar .nav-label,
+  .sidebar .brand-wordmark {
+    display: none;
+  }
+
+  .sidebar-logo .brand-glyph {
+    display: grid;
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    display: none;
+  }
+
+  .main-column,
+  .social-shell:has(.side-panel, .inbox) .main-column {
+    min-height: 0;
+    margin-left: 0;
+    padding-bottom: calc(var(--tabs-height) + env(safe-area-inset-bottom));
+  }
+
+  .mobile-tabs {
+    position: fixed;
+    z-index: 20;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    justify-content: space-around;
+    height: calc(var(--tabs-height) + env(safe-area-inset-bottom));
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+  }
+
+  .mobile-tabs .nav-link {
+    width: 56px;
+    height: var(--tabs-height);
+    justify-content: center;
+    padding: 0;
+  }
+
+  .mobile-tabs .nav-link:hover {
+    background: none;
+  }
+
+  .mobile-tabs .nav-label {
+    display: none;
+  }
+
+  /* An open chat gets the whole screen. */
+  .social-shell:has(.chat-thread) .mobile-tabs {
+    display: none;
+  }
+
+  .social-shell:has(.chat-thread) .main-column {
+    padding-bottom: 0;
+  }
+
+  .mobile-top-bar {
+    position: sticky;
+    z-index: 15;
+    top: 0;
+    display: flex;
+    align-items: center;
+    height: var(--top-bar-height);
+    padding: 0 4px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+
+  .mobile-top-bar h1 {
+    min-width: 0;
+    flex: 1;
+    margin: 0;
+    overflow: hidden;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-top-bar-side {
+    display: flex;
+    width: 44px;
+    flex: 0 0 auto;
+  }
+
+  .mobile-top-bar-end {
+    justify-content: flex-end;
+  }
+}

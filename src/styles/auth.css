@@ -1,0 +1,157 @@
+.auth-page {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 0 env(safe-area-inset-bottom);
+  background: var(--bg);
+}
+
+.auth-column {
+  display: grid;
+  width: 100%;
+  max-width: 350px;
+  gap: 10px;
+  margin: auto 0;
+}
+
+.auth-box {
+  display: grid;
+  justify-items: center;
+  padding: 10px 40px 24px;
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.auth-logo {
+  margin: 26px 0 28px;
+  font-weight: 400;
+}
+
+.auth-logo .brand-wordmark {
+  font-size: 52px;
+}
+
+.auth-icon {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  margin: 22px 0 14px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+
+.auth-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.auth-description {
+  margin: 0 0 18px;
+  color: var(--ink-soft);
+}
+
+.auth-form {
+  display: grid;
+  width: 100%;
+  gap: 6px;
+}
+
+.auth-field {
+  position: relative;
+  display: flex;
+  height: 38px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg-soft);
+}
+
+.auth-field:focus-within {
+  border-color: var(--line-focus);
+}
+
+.auth-field input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 9px 8px 7px;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  outline: none;
+}
+
+.auth-field span {
+  position: absolute;
+  left: 9px;
+  overflow: hidden;
+  max-width: calc(100% - 18px);
+  color: var(--ink-soft);
+  font-size: 12px;
+  pointer-events: none;
+  text-overflow: ellipsis;
+  transform-origin: left;
+  transition: transform 100ms ease-out;
+  white-space: nowrap;
+}
+
+.auth-field input:not(:placeholder-shown) {
+  padding: 14px 8px 2px;
+}
+
+.auth-field input:not(:placeholder-shown) + span {
+  transform: scale(0.83) translateY(-10px);
+}
+
+.auth-field button {
+  flex: 0 0 auto;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auth-submit {
+  margin: 8px 0;
+}
+
+.auth-help {
+  margin-top: 14px;
+  color: var(--link);
+  font-size: 12px;
+}
+
+.auth-switch {
+  display: block;
+  padding: 20px;
+}
+
+.auth-switch a {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.auth-footer {
+  padding: 24px 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+/* Phones drop the boxes, as Instagram does. */
+@media (max-width: 450px) {
+  .auth-column {
+    max-width: 100%;
+  }
+
+  .auth-box {
+    border: 0;
+  }
+
+  .auth-switch {
+    padding-top: 0;
+  }
+}
