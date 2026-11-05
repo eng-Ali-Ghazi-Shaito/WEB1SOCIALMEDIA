@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,178 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum CodePurpose {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+
+  @@map("code_purpose")
+}
+
+enum NotificationType {
+  FOLLOW
+  LIKE
+
+  @@map("notification_type")
+}
+
+model User {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  email           String    @unique @db.VarChar(254)
+  username        String    @unique @db.VarChar(30)
+  fullName        String    @map("full_name") @db.VarChar(30)
+  bio             String?   @db.VarChar(150)
+  avatarUrl       String?   @map("avatar_url") @db.Text
+  passwordHash    String    @map("password_hash") @db.Text
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  lastSeenAt      DateTime? @map("last_seen_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  authCodes             AuthCode[]
+  sessions              Session[]
+  following             Follow[]       @relation("FollowFollower")
+  followers             Follow[]       @relation("FollowFollowing")
+  posts                 Post[]
+  likes                 Like[]
+  conversationsAsUserA  Conversation[] @relation("ConversationUserA")
+  conversationsAsUserB  Conversation[] @relation("ConversationUserB")
+  sentMessages          Message[]
+  notificationsReceived Notification[] @relation("NotificationRecipient")
+  notificationsCaused   Notification[] @relation("NotificationActor")
+
+  // Declared here so migrate dev does not drop them: unlike partial indexes and CHECKs, which
+  // Prisma ignores, it reads GIN indexes. They are created by the constraints_and_indexes
+  // migration, after pg_trgm exists.
+  @@index([username(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_username_trgm_idx")
+  @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "users_full_name_trgm_idx")
+  @@map("users")
+}
+
+model AuthCode {
+  id        String      @id @default(uuid(7)) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  purpose   CodePurpose
+  codeHash  String      @map("code_hash") @db.Text
+  attempts  Int         @default(0)
+  expiresAt DateTime    @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime?   @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt], map: "auth_codes_latest")
+  @@map("auth_codes")
+}
+
+model Session {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tokenHash  String   @unique @map("token_hash") @db.Text
+  userAgent  String?  @map("user_agent") @db.VarChar(255)
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  lastUsedAt DateTime @default(now()) @map("last_used_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Follow {
+  followerId  String   @map("follower_id") @db.Uuid
+  followingId String   @map("following_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  follower  User @relation("FollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("FollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Post {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  imageUrl  String   @map("image_url") @db.Text
+  imageKey  String   @unique @map("image_key") @db.Text
+  caption   String?  @db.VarChar(2200)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes         Like[]
+  notifications Notification[]
+
+  @@index([authorId, createdAt, id], map: "posts_profile_and_feed")
+  @@map("posts")
+}
+
+model Like {
+  userId    String   @map("user_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+  @@map("likes")
+}
+
+// 1:1 only in V1: exactly two users per row. Group chat would need a participants table.
+model Conversation {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  userAId         String    @map("user_a_id") @db.Uuid
+  userBId         String    @map("user_b_id") @db.Uuid
+  userALastReadAt DateTime? @map("user_a_last_read_at") @db.Timestamptz(3)
+  userBLastReadAt DateTime? @map("user_b_last_read_at") @db.Timestamptz(3)
+  // Updated in the same transaction as every message insert, so the inbox order never disagrees with the messages.
+  lastMessageAt   DateTime  @default(now()) @map("last_message_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  userA    User      @relation("ConversationUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB    User      @relation("ConversationUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([userAId, userBId], map: "one_conversation_per_pair")
+  @@index([userAId, lastMessageAt])
+  @@index([userBId, lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  conversationId  String   @map("conversation_id") @db.Uuid
+  senderId        String   @map("sender_id") @db.Uuid
+  clientMessageId String   @map("client_message_id") @db.Uuid
+  body            String   @db.VarChar(1000)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, clientMessageId], map: "no_duplicate_send")
+  @@index([conversationId, createdAt, id], map: "messages_history")
+  @@map("messages")
+}
+
+model Notification {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  recipientId String           @map("recipient_id") @db.Uuid
+  actorId     String           @map("actor_id") @db.Uuid
+  type        NotificationType
+  postId      String?          @map("post_id") @db.Uuid
+  readAt      DateTime?        @map("read_at") @db.Timestamptz(3)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  recipient User  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User  @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  post      Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt, id], map: "notifications_list")
+  @@map("notifications")
 }

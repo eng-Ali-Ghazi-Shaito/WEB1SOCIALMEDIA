@@ -110,6 +110,19 @@ server.ts
 - Lists use cursor pagination on (`createdAt`, `id`), max 50.
 - Chat: save the message BEFORE emitting it.
 
+## Data and concurrency rules
+
+- Never read-then-write a counter or status. Use one atomic UPDATE with the condition in WHERE and check the affected row count (code attempts: attempts + 1 WHERE attempts < 5; code use: used_at = now() WHERE used_at IS NULL, exactly 1 row).
+- Issuing a new code deletes the old unused code of the same purpose in the same transaction.
+- First message: create the conversation and the message in ONE transaction.
+- conversations.last_message_at and last_read_at only move forward: GREATEST(current, new) via raw SQL.
+- conversation:read stores the createdAt of the last message the client displayed, not now().
+- A retried clientMessageId from another conversation is rejected.
+- Lowercase both UUID strings before ordering a conversation pair.
+- Notifications are upserted; notification:read marks up to a createdAt.
+- Every Zod string rejects "\u0000" through one shared helper.
+- prisma migrate dev runs only against the development database; production deployments run prisma migrate deploy and never migrate dev.
+
 ## The 18 endpoints
 
 1 POST /api/auth/signup · 2 POST /api/auth/verify-email · 3 POST /api/auth/login ·
