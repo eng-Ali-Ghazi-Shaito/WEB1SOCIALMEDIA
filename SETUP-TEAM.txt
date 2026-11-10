@@ -1,0 +1,207 @@
+WEB1 SOCIAL MEDIA - TEAM SETUP
+==============================================================
+
+PART A is for Ali, before sending the zip.
+PART B is for teammates: 3 short steps.
+PART C is the prompt to paste into Claude Code or Codex.
+
+
+==============================================================
+PART A: FOR ALI - HOW TO MAKE THE ZIP
+==============================================================
+
+Do NOT right-click and zip the folder. That would include .env and .env.local
+(your private Railway password and secrets) and node_modules (very large).
+
+Run this in PowerShell:
+
+  cd C:\dev
+  C:\Windows\System32\tar.exe -a -c -f C:\dev\web1-socialmedia.zip --exclude=node_modules --exclude=.next --exclude=.env --exclude=.env.local --exclude=tsconfig.tsbuildinfo --exclude=src/generated web1-socialmedia
+
+Result: C:\dev\web1-socialmedia.zip (under 1 MB).
+
+Without .env, each teammate gets their own local database, so nobody can break
+the Railway database. To have a teammate use Railway instead, send them the .env
+file privately (not inside the zip). The prompt in PART C handles both cases.
+
+
+==============================================================
+PART B: FOR TEAMMATES - HOW TO START
+==============================================================
+
+1. Unzip to a short path with no spaces and outside OneDrive, for example:
+     C:\dev\web1-socialmedia
+
+2. Install an AI coding tool if you do not have one yet (Claude Code or Codex),
+   using the instructions on its official website.
+
+3. Open a terminal AS ADMINISTRATOR, go into the folder, and start the tool:
+     cd C:\dev\web1-socialmedia
+     claude        (or: codex)
+
+   Then copy everything between the two "PROMPT" lines in PART C and paste it.
+   Approve the install commands when the tool asks.
+
+
+==============================================================
+PART C: THE PROMPT
+==============================================================
+
+----------------------- PROMPT START (copy from here) -----------------------
+
+Set up this project on my computer. I may have nothing installed. The current
+folder is the project. This is a setup task only: go through the steps in order
+without writing a plan first, and stop to ask me only if a step fails and the
+fix is not covered below.
+
+RULES
+- Do NOT change any existing file in this project. No code, no package.json, no
+  package-lock.json, no schema, no migrations. The only file you may create by
+  hand is .env. Generated folders (node_modules, .next, src/generated) are fine.
+- Use "npm ci". Never "npm install", "npm update" or "npm audit fix": they can
+  change package-lock.json and my versions would no longer match the team.
+- Never run "prisma migrate dev", "prisma migrate reset" or "prisma db push".
+  Use only "prisma migrate deploy". If .env points to the shared Railway database,
+  these commands could damage it for everyone.
+- Do not build any missing feature. There are no /api routes yet, that is expected.
+- Install the EXACT versions below, not "latest". If an exact version cannot be
+  installed, stop and tell me which one, and do not silently use another.
+- Never print the contents of .env in your messages.
+
+EXACT VERSIONS
+  Node.js      24.18.0
+  npm          11.16.0
+  PostgreSQL   18.6     (only needed for a local database)
+  Git          2.55.0   (optional, not needed to run the project)
+
+STEP 1 - CHECK WHAT IS ALREADY INSTALLED
+  node -v
+  npm -v
+  git --version
+  Skip any install below whose version already matches exactly. If a different
+  Node version is installed, tell me before replacing it.
+
+STEP 2 - INSTALL THE TOOLS
+
+Windows (PowerShell, as Administrator):
+  winget install --id OpenJS.NodeJS.LTS --exact --version 24.18.0 --source winget --accept-package-agreements --accept-source-agreements
+  winget install --id Git.Git --exact --version 2.55.0.3 --source winget --accept-package-agreements --accept-source-agreements
+
+  If winget is not available, download and run Node from:
+  https://nodejs.org/dist/v24.18.0/node-v24.18.0-x64.msi
+
+  A new install is not on PATH in the terminal that is already open. Refresh it:
+  $env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")
+
+  If PowerShell blocks npm with an execution policy error, run:
+  Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force
+
+macOS or Linux:
+  Install nvm from https://github.com/nvm-sh/nvm, then:
+  nvm install 24.18.0
+  nvm use 24.18.0
+  macOS Node download: https://nodejs.org/dist/v24.18.0/node-v24.18.0.pkg
+
+All systems, pin npm (Node ships with its own npm version):
+  npm install -g npm@11.16.0
+
+Check: "node -v" must print v24.18.0 and "npm -v" must print 11.16.0.
+
+STEP 3 - CHOOSE THE DATABASE
+  Is there already a .env file in the project folder?
+
+  CASE A: .env EXISTS. Do not overwrite it. Check the host in DATABASE_URL
+          without showing me the value.
+          - Not localhost (shared Railway database): skip STEP 4 completely, and
+            in STEP 6 run only "npx prisma migrate status". No deploy, no seed.
+          - localhost: continue normally with STEP 4.
+
+  CASE B: .env DOES NOT EXIST. Do STEP 4 and create .env as described there.
+
+STEP 4 - LOCAL POSTGRESQL 18.6
+
+Windows (PowerShell, as Administrator):
+  winget install --id PostgreSQL.PostgreSQL.18 --exact --version 18.6-5 --source winget --accept-package-agreements --accept-source-agreements --override "--mode unattended --unattendedmodeui none --superpassword postgres --servicepassword postgres --serverport 5432"
+
+  If winget fails, download and run this installer, with password "postgres" and
+  port 5432:
+  https://get.enterprisedb.com/postgresql/postgresql-18.6-1-windows-x64.exe
+
+  PostgreSQL does not add itself to PATH, so use the full path to create the database:
+  $env:PGPASSWORD = "postgres"
+  & "C:\Program Files\PostgreSQL\18\bin\createdb.exe" -U postgres -h localhost -p 5432 web1_socialmedia
+
+macOS: brew install postgresql@18, then brew services start postgresql@18, then
+       createdb web1_socialmedia.
+Linux: install PostgreSQL 18 from the official apt.postgresql.org repository, then
+       create a user "postgres" with password "postgres" and the database
+       web1_socialmedia.
+On macOS and Linux, use the closest 18.x available and tell me which one you used.
+
+If port 5432 is already used by another PostgreSQL, tell me, and do not remove it.
+
+Then create a file named .env in the project root with exactly these 4 keys:
+  DATABASE_URL="postgresql://postgres:postgres@localhost:5432/web1_socialmedia"
+  JWT_SECRET="<value 1>"
+  JWT_EXPIRES_IN="1h"
+  CODE_HMAC_SECRET="<value 2>"
+
+Create value 1 and value 2 by running this command twice (two different values):
+  node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+
+On macOS, adjust the user in DATABASE_URL if Homebrew created a different one.
+
+STEP 5 - INSTALL THE PROJECT
+  npm ci
+  npx prisma generate
+  npx next typegen
+
+  Why the last two matter: src/generated and .next are not in the zip.
+  "prisma generate" creates the database client the code imports. "next typegen"
+  creates global Next.js types such as LayoutProps. Without it, the type check
+  fails with: Cannot find name 'LayoutProps'.
+
+  npm ci may print audit warnings. Ignore them, do not run npm audit fix.
+
+STEP 6 - PREPARE THE DATABASE (local database only, see STEP 3 for Railway)
+  npx prisma migrate deploy
+  npx prisma db seed
+
+  The seed creates these test accounts, all with password Password123!
+    ali@test.com
+    carl@test.com
+    unverified@test.com   (email not verified)
+
+STEP 7 - VERIFY
+  npx tsc --noEmit        must finish with no errors
+  npx vitest run          must show 11 tests passed in 2 files
+  npm run dev             must print: Server listening at http://localhost:3000
+
+  Run "npm run dev" in the background, request http://localhost:3000, and check
+  the response is a 307 redirect (expected). Tell me to open that address in my
+  browser. If port 3000 is busy, add PORT=3001 to .env and try again.
+
+  Use "npx vitest run", not "npm test": npm test stays open in watch mode.
+
+STEP 8 - REPORT
+  Give me a short report with:
+  - the versions now installed (node, npm, PostgreSQL)
+  - which database I am using (local or shared), without showing secrets
+  - the result of each STEP 7 check
+  - anything you skipped, changed or could not do
+
+----------------------- PROMPT END (copy to here) ---------------------------
+
+
+==============================================================
+REFERENCE: PROJECT PACKAGE VERSIONS
+==============================================================
+
+"npm ci" installs these automatically from package-lock.json. Nothing to do by hand.
+
+  next 16.4.4              react 19.3.0              react-dom 19.3.0
+  typescript 5.9.3         prisma 7.10.1             @prisma/client 7.10.1
+  @prisma/adapter-pg 7.10.1                          zod 4.6.7
+  jose 6.2.15              argon2 0.45.2             socket.io 4.8.4
+  socket.io-client 4.8.4   nodemailer 10.3.1         cloudinary 2.11.0
+  vitest 5.1.0             tsx 4.23.15

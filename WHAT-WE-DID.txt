@@ -1,0 +1,217 @@
+DATABASE FOUNDATION: WHAT WE DID, STEP BY STEP
+Date: 2026-11-05   Commit: d2493be   Branch: master
+
+How to read this file
+  [ME]  = Claude did this
+  [YOU] = you decided or approved this
+  WHY   = the reason, so you can defend it to your professor
+
+
+==============================================================
+PART 1: RESEARCH (no files changed, nothing written to the database)
+==============================================================
+
+1. [ME] Read AGENTS.md, CLAUDE.md, docs/schema.dbml, package.json, server.ts,
+   prisma7.config.ts and the empty prisma/schema.prisma.
+
+2. [ME] Read the docs for the INSTALLED versions:
+   - Next.js 16.4.4: custom-server.md and environment-variables.md
+     (in node_modules/next/dist/docs/01-app/02-guides/)
+   - Prisma 7.10.1: config, schema, indexes, migrations, seeding pages
+   - Zod 4.6.7: zod.dev/api and zod.dev/error-formatting
+
+3. [ME] Looked at the Railway database with read-only queries.
+   Found: PostgreSQL 18.6, zero tables, pg_trgm available.
+
+4. [ME] Found a conflict: your new rule said "migrate dev is local only", but
+   .env points to Railway and this PC has no local PostgreSQL.
+
+5. [YOU] DECISION: `railway` IS the development database, there is no production
+   yet. You also rewrote the AGENTS.md rule to say so.
+
+6. [ME] Wrote the plan.
+   [YOU] APPROVED the plan.
+
+7. [YOU] NEW RULE: ask before each file edit and each command that changes the
+   database. Everything below follows that rule.
+
+
+==============================================================
+PART 2: THE WORK (in the order it happened)
+==============================================================
+
+STEP 1. prisma/schema.prisma
+  [YOU] Approved the full draft.
+  [ME]  Wrote 9 models, 2 enums, 14 relations (all onDelete: Cascade).
+        `prisma validate` passed.
+  WHY   camelCase in TypeScript and snake_case in the database, using @map and
+        @@map. Every date uses Timestamptz(3), meaning UTC with millisecond
+        precision. Ids use uuid(7), which Prisma generates, not the database.
+
+STEP 2. First migration: init
+  [YOU] Approved running it.
+  [ME]  npx prisma migrate dev --name init
+        npx prisma generate
+  WHY   A migration is a SQL file that records one change to the database. It
+        is committed so every environment can be built the same way.
+        Result: 20261105154002_init created the 9 tables.
+
+STEP 3. Second migration: constraints_and_indexes
+  [YOU] Approved the full SQL.
+  [ME]  npx prisma migrate dev --create-only --name constraints_and_indexes
+        Then wrote the SQL by hand. 17 statements, not applied yet:
+        10 CHECK constraints, 3 partial UNIQUE indexes, the pg_trgm extension,
+        2 GIN trigram indexes, 1 partial index.
+  WHY   Prisma's schema language cannot express CHECK constraints, so they must
+        be written in SQL. The database is the last line of defence: it covers
+        every write, even if the app has a bug.
+  NOTE  posts.image_key UNIQUE is NOT in this file. The DBML already marks it
+        unique, so init created it. The migration has a comment explaining this.
+
+STEP 4. A risk I found before applying it
+  [ME]  Noticed `migrate dev` compares the migration history with schema.prisma
+        after applying, and might try to DROP the hand-written indexes. My
+        attempt to check this first failed, because that check needs a
+        shadowDatabaseUrl we do not have configured.
+  [YOU] Chose: run `migrate deploy` once, measure, then finish with `migrate dev`.
+  [ME]  npx prisma migrate deploy   (applied the SQL, creates nothing new)
+        npx prisma migrate diff     (read-only comparison)
+        Result: Prisma wanted to DROP the 2 GIN indexes and nothing else.
+  WHY   Prisma reads GIN indexes, so an index missing from schema.prisma looks
+        like a mistake to remove. It ignores partial indexes and CHECKs.
+        This was a change from the plan, and you approved it.
+
+STEP 5. Fixing that drift
+  [YOU] Approved adding two lines to the User model.
+  [ME]  Added @@index(... ops: raw("gin_trgm_ops") ..., type: Gin) for username
+        and fullName, using the same index names. The diff became empty.
+  [YOU] Approved the final check.
+  [ME]  npx prisma migrate dev  ->  "Already in sync".
+  WHY   "Drift" means the real database and the schema disagree. No new
+        migration was needed, because the indexes already existed.
+
+STEP 6. src/config/env.ts
+  [YOU] Approved the file.
+  [ME]  Zod validates process.env once. If anything is wrong it throws one error
+        listing every bad variable. The error shows no secret values.
+  WHY   Better to crash at startup than at the first request needing a secret.
+        PORT was added beyond your list: Railway sets it, and only env.ts may
+        read process.env.
+
+STEP 7. src/lib/prisma.ts
+  [YOU] Approved the file.
+  [ME]  One PrismaClient using @prisma/adapter-pg, cached on globalThis outside
+        production.
+  WHY   Dev hot reload re-runs modules. Without the cache, each reload opens a
+        new connection pool until PostgreSQL runs out of connections.
+
+STEP 8. server.ts
+  [YOU] Approved the new version.
+  [ME]  Imports env first, removed both process.env reads, passes port to next(),
+        added a "SOCKET.IO:" marker and one startup log line.
+  WHY   Importing env first means bad config crashes before Next.js boots.
+
+STEP 9. prisma/seed.ts and prisma7.config.ts
+  [YOU] Approved both, then approved running the seed twice.
+  [ME]  Wrote the seed, registered it, and ran `npx prisma db seed` twice.
+        Result: exactly 3 users, Argon2id hashes, version 7 UUIDs.
+  WHY   Running it twice proves it is repeatable: upsert updates a row instead
+        of inserting a duplicate. These accounts have a known password, so never
+        seed them into a production database.
+
+STEP 10. AGENTS.md
+  [YOU] Approved the text.
+  [ME]  Added "Data and concurrency rules" between Security and The 18 endpoints,
+        word for word, with your rewritten migrate dev rule as the last bullet.
+
+STEP 11. Constraint test
+  [YOU] Approved creating and running the temporary script.
+  [ME]  Ran prisma/verify-constraints.tmp.ts inside ONE transaction that ended
+        in ROLLBACK. Result: 30/30 passed.
+        - 23 invalid rows rejected, each by the exact constraint expected
+        - 7 valid rows accepted (controls, proving the rules are not too strict)
+        - pg_trgm and the 3 indexes that reject nothing confirmed in the catalog
+        - still 3 users afterwards
+  WHY   Checking the constraint NAME, not just "it failed", proves the right rule
+        did the rejecting. Each case used a SAVEPOINT because a failed insert
+        would otherwise abort the whole transaction.
+  [YOU] Approved deleting the script. [ME] Deleted it.
+
+STEP 12. Final checks (no approval needed: no edits, no database changes)
+  [ME]  npx tsc --noEmit               passed
+        npm test -- --run              11/11 passed (existing UI tests)
+        Bad config test                crashed with the list of 3 variables
+        npm run dev + GET /login       HTTP 200
+  MY MISTAKE: my first attempt to stop the dev server failed, and my command
+        wrongly printed "port 3000 free". I doubted it, checked another way,
+        found 4 processes still running, stopped them, and confirmed the port
+        refused connections.
+
+STEP 13. Commit
+  [YOU] Gave the exact commit message and told me to run it.
+  [ME]  git add . and git commit -> d2493be (10 files). I confirmed that .env and
+        src/generated/ were not staged. I added the Co-Authored-By line under
+        your message, so Claude's help is recorded.
+
+
+==============================================================
+PART 3: FILES IN THE COMMIT
+==============================================================
+
+  prisma/schema.prisma                 the data model
+  prisma/migrations/...init            creates the tables
+  prisma/migrations/...constraints_    CHECKs and special indexes (hand-written)
+    and_indexes
+  prisma/migrations/migration_lock.toml  records the database provider
+  prisma/seed.ts                       3 test users
+  prisma7.config.ts                    seed line added
+  src/config/env.ts                    validated environment variables
+  src/lib/prisma.ts                    the single database client
+  server.ts                            custom server, HTTP only for now
+  AGENTS.md                            new data and concurrency rules
+
+
+==============================================================
+PART 4: QUESTIONS YOUR PROFESSOR MAY ASK
+==============================================================
+
+Q: Why validate in the database if Zod validates too?
+A: Zod only protects requests that pass through the API. CHECK and UNIQUE
+   protect against bugs, race conditions and raw SQL.
+
+Q: Why user_a_id < user_b_id?
+A: It stores each pair in one fixed order, so (A,B) and (B,A) are the same row,
+   and the unique index really allows one conversation per pair.
+
+Q: Why are the FOLLOW notification indexes partial?
+A: post_id is NULL for FOLLOW, and NULLs never conflict in a normal unique index.
+   The partial index on (recipient_id, actor_id) WHERE type = 'FOLLOW' fixes that.
+
+Q: Why a trigram index for search?
+A: ILIKE '%ali%' cannot use a normal B-tree index. pg_trgm splits text into
+   3-letter pieces, and a GIN index maps each piece to its rows.
+
+Q: What is the shadow database?
+A: A temporary database that migrate dev creates, replays all migrations into,
+   then drops. It detects drift without touching your data.
+
+Q: Why does prisma7.config.ts still read process.env?
+A: It is the one exception to the env.ts rule. Importing env.ts there would make
+   `prisma generate` require the JWT secrets at build time.
+
+Q: What is a known weakness?
+A: btrim only strips spaces, so a message of only tabs or newlines passes the
+   CHECK. Zod's .trim() must catch that in the API layer.
+
+
+==============================================================
+PART 5: CHECK IT YOURSELF
+==============================================================
+
+  npx prisma migrate status     2 migrations, up to date
+  npx prisma studio             browse the tables and the 3 users
+  npm run dev                   server on http://localhost:3000
+  npx tsc --noEmit              no errors
+
+To really understand it: open the second migration file and read each comment,
+then try to explain every statement out loud without looking.

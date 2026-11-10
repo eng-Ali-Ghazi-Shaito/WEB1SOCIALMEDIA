@@ -18,8 +18,11 @@ const seedUsers = [
 async function main() {
   for (const user of seedUsers) {
     const passwordHash = await hash(SEED_PASSWORD, { type: argon2id });
+    //object spread syntax
     const data = { ...user, passwordHash };
     // update repeats create so a re-seed also restores accounts changed during testing.
+    //upsert means create or update
+    //select returns the user id.
     await prisma.user.upsert({
       where: { email: user.email },
       create: data,
@@ -32,6 +35,7 @@ async function main() {
 main()
   .catch((error: unknown) => {
     console.error(error);
+    //mark nodejs process as failed since 0=success.
     process.exitCode = 1;
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => prisma.$disconnect());//close the connection whenever failed or success
