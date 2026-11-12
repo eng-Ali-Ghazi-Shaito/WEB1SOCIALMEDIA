@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { z } from "zod";
 import { ACCESS_TOKEN_COOKIE, accessTokenCookieOptions } from "@/config/cookie.config";
 
 import {
@@ -8,8 +7,8 @@ import {
 } from "@/services/Authentication.service";
 import type { AuthRequest } from "@/types/auth.types";
 import { BadRequestException } from "@/util/exceptions/http/BadRequestException";
-import type { FieldErrors } from "@/util/exceptions/http/HttpException";
 import { loginSchema } from "@/validations/auth.schema";
+import { toFieldErrors } from "@/validations/common";
 
 async function readJson(req: NextRequest): Promise<unknown> {
   try {
@@ -18,13 +17,6 @@ async function readJson(req: NextRequest): Promise<unknown> {
   } catch {
     throw new BadRequestException("Request body must be valid JSON");
   }
-}
-
-// Unknown keys and non-object bodies land in formErrors, so fieldErrors alone
-// would hide why the request failed.
-function toFieldErrors(error: z.ZodError): FieldErrors {
-  const { formErrors, fieldErrors } = z.flattenError(error);
-  return formErrors.length > 0 ? { ...fieldErrors, _form: formErrors } : fieldErrors;
 }
 
 export class AuthController {

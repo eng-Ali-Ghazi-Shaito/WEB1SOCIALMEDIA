@@ -40,6 +40,7 @@ model User {
   followers             Follow[]       @relation("FollowFollowing")
   posts                 Post[]
   likes                 Like[]
+  postLikeRateLimit     PostLikeRateLimit?
   conversationsAsUserA  Conversation[] @relation("ConversationUserA")
   conversationsAsUserB  Conversation[] @relation("ConversationUserB")
   sentMessages          Message[]
@@ -125,6 +126,15 @@ model Like {
   @@id([userId, postId])
   @@index([postId])
   @@map("likes")
+}
+
+model PostLikeRateLimit {
+  userId      String     @id @map("user_id") @db.Uuid
+  changeTimes DateTime[] @map("change_times") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("post_like_rate_limits")
 }
 
 // 1:1 only in V1: exactly two users per row. Group chat would need a participants table.

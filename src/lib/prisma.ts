@@ -9,13 +9,26 @@ import { env } from "@/config/env";
 
 //class generated from the prisma schema it has CRUD methods.
 import { PrismaClient } from "@/generated/prisma/client";
+import { publishMonitoringEvent } from "@/monitoring/events";
 
 //build one client with one pool( pool=10 connections )
 function createPrismaClient() {
   const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
 
   //create prismaclient using the adapter.
-  return new PrismaClient({ adapter });
+  const client = new PrismaClient({
+    adapter,
+    log: env.ELASTICSEARCH_URL && env.ELASTICSEARCH_API_KEY
+      ? [{ emit: "event", level: "query" }, { emit: "event", level: "error" }]
+      : [],
+  });
+  client.$on("query", ({ duration }) => {
+    publishMonitoringEvent({ event_type: "database", action: "query", duration_ms: duration });
+  });
+  client.$on("error", () => {
+    publishMonitoringEvent({ event_type: "database", action: "query_error" });
+  });
+  return client;
 }
 
 // Dev hot reload re-runs this module. Without the cache, each reload would open a new
@@ -26,7 +39,9 @@ function createPrismaClient() {
 //globalThis can hold additional properties such as prismaClient
 //javascript let us add keys to object so we add prisma to it.
 //globalForPrisma is now refernece for globalThis and any changes. 
-const globalForPrisma = globalThis as typeof globalThis & { prisma?: PrismaClient };
+const globalForPrisma = globalThis as typeof globalThis & {
+  prisma?: ReturnType<typeof createPrismaClient>;
+};
 
 //if globalForPrisma.prisma has prismaclient then save it else call function.
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

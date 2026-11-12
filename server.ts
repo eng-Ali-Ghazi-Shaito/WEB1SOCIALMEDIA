@@ -11,6 +11,7 @@
 //web browser means exploring  www
 //web: connected things
 import { env } from "./src/config/env";
+import { startMonitoring } from "./src/monitoring/runtime";
 import { logger } from "./src/util/logger";
 //creates http web server
 import { createServer } from "http";
@@ -18,13 +19,28 @@ import { createServer } from "http";
 import next from "next";
 
 const dev = env.NODE_ENV !== "production";
+const monitoring = startMonitoring();
 
 // A custom server instead of `next start`: Socket.io must attach to a long-lived HTTP server,
 // which route handlers cannot provide.
 
 //handle is a function tells nextjs how to handle requests.
 //example:visits hhttp://localhost:3000/dashboard the req:asking for dashboard and the response that will be sent back and the handle gives the nextjs the request to process the request. 
-const httpServer = createServer((req, res) => handle(req, res));
+const httpServer = createServer((req, res) => {
+  const forward = () => {
+    void handle(req, res).catch((error: unknown) => {
+      logger.error("Next.js request handler rejected", error, "request_handler_failed");
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.end();
+      } else if (!res.writableEnded) {
+        res.destroy();
+      }
+    });
+  };
+  if (monitoring) monitoring.handleRequest(req, res, forward);
+  else forward();
+});
 //app is the nextjs application
 const app = next({ dev, httpServer, port: env.PORT });
 //nextjs provide a function that nows how to handle incomping http requests like /dash /login 
@@ -44,12 +60,13 @@ app
   .prepare()
   .then(() =>
     httpServer.listen(env.PORT, () => {
-      logger.info(`Server listening at http://localhost:${env.PORT} as ${env.NODE_ENV}`);
+      logger.info(`Server listening at http://localhost:${env.PORT} as ${env.NODE_ENV}`, "server_started");
     }),
   )
-  .catch((error: unknown) => {
+  .catch(async (error: unknown) => {
 
     // Exit non-zero: otherwise a failed boot looks like a running server and Railway won't restart it.
-    logger.error("Server failed to start", error);
+    logger.error("Server failed to start", error, "server_start_failed");
+    await monitoring?.flush();
     process.exit(1);
   });

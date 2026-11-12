@@ -19,7 +19,7 @@ export function withErrorHandler<Req extends NextRequest, Ctx>(
       }
       // Details go to the log only: stack traces and Prisma messages expose internals.
       //unexpected errors shown in logger.
-      logger.error("Unhandled request error", error);
+      logger.error("Unhandled request error", error, "unhandled_api_error");
       return NextResponse.json(
         { error: { code: "INTERNAL_ERROR", message: "Internal server error" } },
         { status: 500 },

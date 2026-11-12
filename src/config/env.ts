@@ -17,10 +17,15 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(JWT_SECRET_MIN_LENGTH),
   JWT_EXPIRES_IN: z.string().regex(/^[1-9]\d*[smhd]$/, 'Must be a positive whole number plus s, m, h or d, like "15m" or "1h"').default("1h"),
   CODE_HMAC_SECRET: z.string().min(CODE_HMAC_SECRET_MIN_LENGTH),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
+  CLOUDINARY_API_KEY: z.string().min(1).optional(),
+  CLOUDINARY_API_SECRET: z.string().min(1).optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   // Railway assigns the port through PORT, so it cannot be hardcoded in server.ts.
   PORT: z.coerce.number().int().positive().default(DEFAULT_PORT),
   APP_URL: z.url().default("http://localhost:3000"),
+  ELASTICSEARCH_URL: z.url({ protocol: /^https?$/ }).optional(),
+  ELASTICSEARCH_API_KEY: z.string().trim().min(1).optional(),
 });
 
 function loadEnv() {

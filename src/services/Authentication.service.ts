@@ -73,7 +73,7 @@ export class AuthenticationService {
   async logout(userId: string): Promise<void> {
     // TRADE-OFF: a stateless JWT stays valid until it expires, so the client must
     // delete it. Real revocation arrives with the refresh-token/sessions step.
-    logger.info(`User ${userId} logged out`);
+    logger.info(`User ${userId} logged out`, "logout");
   }
 
   private async verifySignature(token: string): Promise<JWTPayload> {
@@ -86,7 +86,7 @@ export class AuthenticationService {
       // JWTExpired first: it is also a JOSEError, so the order decides the response.
       if (error instanceof errors.JWTExpired) throw new TokenExpiredException();
       if (error instanceof errors.JOSEError) throw new InvalidTokenException();
-      logger.error("Token verification failed", error);
+      logger.error("Token verification failed", error, "token_verification_failed");
       throw new ServiceException("Token verification failed", error);
     }
   }

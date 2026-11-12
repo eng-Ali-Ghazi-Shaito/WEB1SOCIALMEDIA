@@ -107,7 +107,7 @@ describe("login", () => {
     const service = createService(createUser());
     const result = await service.login(dto);
     expect(result.user).toEqual({ id: "user-1", username: "ali_test", fullName: "Ali Test" });
-    expect(result.tokenType).toBe("Bearer");
+    expect(result.expiresIn).toBe("1h");
     expect(JSON.stringify(result)).not.toContain("ali@test.com");
     expect(JSON.stringify(result)).not.toContain(passwordHash);
     const payload = await service.verifyToken(result.accessToken);
