@@ -10,3 +10,18 @@ export interface MyAccount {
   unreadNotifications: number;
   unreadConversations: number;
 }
+
+import type { z } from "zod";
+
+import type { userSearchQuerySchema } from "@/validations/user.schema";
+
+// El input ba3d ma Zod yfa7so w ynaddfo.
+export type UserSearchQuery = z.infer<typeof userSearchQuerySchema>;
+
+// User wa7ad bel lista. Ma fi email hon (NFR-05: el email bas bi #7).
+export interface UserSearchResult {
+  id: string;
+  username: string;
+  fullName: string;
+  avatarUrl: string | null;
+}

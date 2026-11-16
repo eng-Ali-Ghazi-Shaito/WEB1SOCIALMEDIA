@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { toRepositoryError } from "@/util/exceptions/toRepositoryError";
+import type { UserSearchResult } from "@/types/user.types";
 
 const credentialsSelect = {
   id: true,
@@ -19,6 +20,13 @@ const myAccountSelect = {
   bio: true,
   avatarUrl: true,
   createdAt: true,
+} satisfies Prisma.UserSelect;
+
+const userSearchSelect = {
+  id: true,
+  username: true,
+  fullName: true,
+  avatarUrl: true,
 } satisfies Prisma.UserSelect;
 
 export type MyAccountRow = Prisma.UserGetPayload<{ select: typeof myAccountSelect }> & {
@@ -53,6 +61,36 @@ export class UserRepository {
       ]);
 
       return { ...user, unreadNotifications, unreadConversations };
+    } catch (error) {
+      throw toRepositoryError(error);
+    }
+  }
+
+    async searchUsers(q: string, take: number): Promise<UserSearchResult[]> {
+    try {
+      const [exact, others] = await Promise.all([
+        // El mutabaqa el tamme btenjlab la7ala, la te2dar t7otta awwal.
+        this.db.user.findFirst({
+          where: { username: q, emailVerifiedAt: { not: null } },
+          select: userSearchSelect,
+        }),
+        this.db.user.findMany({
+          where: {
+            // El 7isebet el mesh verified ma mawjude lal gher (PRD 2esem 5.1).
+            emailVerifiedAt: { not: null },
+            username: { not: q },
+            OR: [
+              { username: { startsWith: q } },
+              { fullName: { startsWith: q, mode: "insensitive" } },
+            ],
+          },
+          select: userSearchSelect,
+          orderBy: { username: "asc" },
+          take,
+        }),
+      ]);
+
+      return exact ? [exact, ...others].slice(0, take) : others;
     } catch (error) {
       throw toRepositoryError(error);
     }

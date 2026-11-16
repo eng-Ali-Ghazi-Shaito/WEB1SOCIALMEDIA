@@ -10,3 +10,6 @@ export const CONVERSATION_PAGE_SIZE = 20;
 export const JSON_BODY_MAX_BYTES = 10 * 1024;
 export const POST_LIKE_CHANGE_LIMIT = 120;
 export const POST_LIKE_WINDOW_MINUTES = 60;
+
+export const SEARCH_QUERY_MAX_LENGTH = 30;
+export const USER_SEARCH_PAGE_SIZE = 20;
